@@ -1,7 +1,8 @@
-## Aula 05 - Criando o Header
+## Aula 06 - Estilização da Home
 
-* Crio o componente de estilização do header
-* Crio o componente Header que tem uma logo e link para a home e o carrinho e o link para o carrinho
-* Coloco o Header no topo do App.js
+* Criamos a estilização no arquivo styled.js e aplicamos no index.js da Home
+* Destaque para a lib [polished](https://polished.js.org/) que instalamos, com `yarn add polished`. Agora podemos manipular as cores com essa lib.
 
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-05-criando-header](https://github.com/tgmarinho/rocketshoes/tree/aula-05-criando-header)
+[https://www.youtube.com/watch?v=CbFMwHvHK1Y](https://www.youtube.com/watch?v=CbFMwHvHK1Y)
+
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-06-estilizando-home ](https://github.com/tgmarinho/rocketshoes/tree/aula-06-estilizando-home )
