@@ -1,20 +1,11 @@
-## Aula 02 - Estrutura do Projeto
+## Aula 03 - Configurando Rotas
 
-Vamos criar uma loja virtual de calçados (Rocketshoes) para aprender a implementação do Redux.
+Vamos criar a configuração de navegação do projeto.
 
-Utilizaremos o Create React App para criar o frontend da aplicação em React:
+Não importei o `BrowserRouter`  de dentro do `routes.js` pois iremos criar um componente Header que também precisará de ter acesso aos dados da rota.
 
-```
-npx create-react-app rocketshoes
-```
+Então os componentes que precisarão de Rotas vão ficar no App.js
 
-E configurei conforme a [aula](https://github.com/tgmarinho/front-react/commit/287881809382cf33c18a14dec9b01d6965aa90e5) 
+Confira o código.
 
-Rodei:
-```
-yarn & yarn start
-```
-
-Pronto, tudo rodando!
-
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-02-estutura-projeto](https://github.com/tgmarinho/rocketshoes/tree/aula-02-estutura-projeto)
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-03-configurando-rotas](https://github.com/tgmarinho/rocketshoes/tree/aula-03-configurando-rotas)
