@@ -1,71 +1,119 @@
-## Aula 08 - Configurando a API
+## Aula 10 - Configurando o Redux
 
-Configurar a API para consumir produtos.
-
-Utilizamos a API [json-server](https://github.com/typicode/json-server) para criar uma API Fake, que simula o que aconteceria em uma API Real.
-
-Só criar um json com os dados fake e rodar o json-server que vai simular a API, inclusive dá para configurar tempo de resposta e outras coisas mais.
-
-Para instalar de forma global na máquina:
+Nessa Aula vamos configuar o Redux na aplicação.
 
 ```
-yarn add json-server -D
+yarn add redux react-redux
 ```
-Depois criar um arquivo `server.json` na raiz do projeto e colocar os dados contendo o estoque  (stock) e os produtos (products), inclusive fazendo os relacionamentos com id.
+Instalamos o redux em si e a integração do React com Redux.
 
-Teremos uma rota stock que retorna o estoque dos produtos, e a rota products que retorna os produtos.
-
-Vamos configurar o axios para consumir essa api.
+Vamos criar uma pasta `store` de dentro da `src` com o arquivo `index.js`:
 
 ```
-yarn add axios
+import { createStore } from 'redux';
+
+const store = createStore();
+
+export default store;
 ```
 
-Veja o arquivo `api.js` no código fonte.
-
-E para rodar a api fake, basta rodar:
+Agora no App.js vamos importar o `Provider` do `react-redux` para poder deixar disponível o `store` em toda a aplicação, portanto o `Provider` tem que envolver todos os componentes. E o provider recebe uma prop chamada store, que é a store que criamos, no código acima.
 
 ```
-yarn json-server server.json -p 3333 -w
+import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import Routes from './routes';
+import GlobalStyle from './styles/globals';
+import Header from './components/Header';
+import store from './store';
+
+function App() {
+  return (
+    <Provider store={store}>
+      <BrowserRouter>
+        <Header />
+        <GlobalStyle />
+        <Routes />
+      </BrowserRouter>
+    </Provider>
+  );
+}
+
+export default App;
 ```
 
-E podemos também ter um script no package.json:
+Pronto agora o store está disponível na aplicação, e o projeto *crashou*.
 
 ```
-...
-"server":  "json-server server.json -p 3333 -w"
-...
+Error: Expected the reducer to be a function.
 ```
 
-E rodar `yarn server` para executar a api.
+Isso ocorreu, porque sempre que criamos um store, temos que passar uma função que é **reducer**.
 
-* json-server é o nome da lib
-* server.json é o nome do arquivo que tem a api fake e está na raiz do projeto, por isso não passo o caminho, apenas o nome do arquivo. Está no mesmo nível do package.json
-* -p 3333 é a porta que defini para rodar essa api
-* -w é para ficar `watching` cada alteração que eu fizer na api, se eu mudar alguma coisa lá dentro não preciso rodar o comando novamente.
-
-Pronto agora para acessar, só chamar a rota que deseja:
+Vamos criar o nosso primeiro reducer para deixar disponível no store.
 
 ```
-http://localhost:3333/stock
+import { createStore } from 'redux';
+
+function cart() {
+  return [];
+}
+
+const store = createStore(cart);
+
+export default store;
+```
+Pronto agora o app volta a funcionar.
+
+Porém se aplicação crescer demais, é interessente separar os reducers em outro arquivo, por módulo e funcionalidade.
+
+Então vamos criar uma pasta `models` e dentro dela outra pasta `cart` com o arquivo `reducers.js`:
+
+E dentro dela colocar o reducer de carrinho.
+
+```
+export  default  function  cart() {
+	return [];
+}
 ```
 
-e 
+E importamos no index.js do store:
 
 ```
-http://localhost:3333/products
+import { createStore } from 'redux';
+import reducer from './models/cart/reducer';
+
+const store = createStore(reducer);
+
+export default store;
 ```
 
-Ambas as rotas vão mostrar um array com seus respectivos objetos.
+Mas como vamos ter vários reducers vamos ter que mudar o store novamente, vamos criar um arquivo `rootReducer.js` dentro de `models`, e esse arquivo vai conter todas as funções dos reducers e vamos combiná-las para que o store tenha acesso em um único estado.
 
-Legal, que se eu chamar o produto e passando o id, ele me traz apenas o produto com seu respectivo id informado:
+`rootReducer.js`: 
 ```
-[http://localhost:3333/products/4](http://localhost:3333/products/4)
+import { combineReducers } from 'redux';
+
+import cart from './cart/reducer';
+
+export default combineReducers({
+  cart,
+});
 ```
-Se eu passar um ID q não exisite ele retorna um objeto vazio.
 
-Dá até para deletar e atualizar valores dentro dessa api, é muito legal!
+e no `index.js` da store, importamos o `rootReducer` que contém os reducers:
 
-Excelente para usar em modo de desenvolvimento no frontend quando um backend não foi feito ainda com a API.
+```
+import { createStore } from 'redux';
+import rootReducer from './models/rootReducer';
 
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-08-configurando-api](https://github.com/tgmarinho/rocketshoes/tree/aula-08-configurando-api)
+const store = createStore(rootReducer);
+
+export default store;
+```
+
+Até aqui a aplicação está funcionando, mas ainda não estamos utulizando os reducers, apenas configuramos o store e reducers, ainda falta as actions e o acesso aos stores.
+
+
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-10-configurando-redux ](https://github.com/tgmarinho/rocketshoes/tree/aula-10-configurando-redux )
