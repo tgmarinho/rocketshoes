@@ -1,8 +1,6 @@
-## Aula 06 - Estilização da Home
+## Aula 07 - Estilização do Carrinho
 
-* Criamos a estilização no arquivo styled.js e aplicamos no index.js da Home
-* Destaque para a lib [polished](https://polished.js.org/) que instalamos, com `yarn add polished`. Agora podemos manipular as cores com essa lib.
+* Criamos a estilização no arquivo styled.js e aplicamos no index.js do Cart
+* Utilizamos novamente a lib do polished para gerenciar a cor do hover do botão finalizar pedido.
 
-[https://www.youtube.com/watch?v=CbFMwHvHK1Y](https://www.youtube.com/watch?v=CbFMwHvHK1Y)
-
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-06-estilizando-home ](https://github.com/tgmarinho/rocketshoes/tree/aula-06-estilizando-home )
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-07-estilizando-carrinho](https://github.com/tgmarinho/rocketshoes/tree/aula-07-estilizando-carrinho)
