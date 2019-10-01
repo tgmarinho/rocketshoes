@@ -1,40 +1,84 @@
-## Aula 15 - Remover produto
+## Aula 16 - Refatorando as actions
 
-Quando o usuário clicar no botão com ícone de lixeira para  remover produto vamos remover do array do reducer do cart.
+Uma prática muito legal é separar as actions em um único arquivo por funcionalidade, e não deixar elas espalhadas no código como estão, e também criar uma variável onde armazenaremos o noma da action, para evitar erros de digitação e facilidar a manunteção dos nomes dessas actions.
 
-O carrinho já está conectado com o Redux, então só passar a função dispatch para disparar uma action para deletar o produto do carrinho informando o id do produto.
-
-```
-...
-function  Cart({ cart, dispatch }) { ... }
-...
-```
+Para fazer isso, vamos criar um arquivo `actions.js` dentro da pasta `store/models/cart`:
 
 ```
-<MdDelete
-   size={20}
-   color="#7169c1"
-   onClick={() => dispatch({ type: 'REMOVE_FROM_CART', id: product.id })}
-/>
+export function addToCart(product) {
+  return {
+    type: 'ADD_TO_CART',
+    product,
+  };
+}
+
+export function removeFromCart(id) {
+  return {
+    type: 'REMOVE_FROM_CART',
+    id,
+  };
+}
 ```
 
-Pronto, agora a action vai ser disparada pelo dipatch, agora só falta fazer o reducer tratar essa ação, pois ouvir ele já está ouvindo. Pode testar no reactotron e ver que o log já aparece.
-
-Para isso no cart/reducer.js:
+Agoramos vamos usar essas funções nos componentes das telas Home e no Cart.
 
 ```
-case 'REMOVE_FROM_CART':
-  return produce(state, draft => {
-    const productIndex = draft.findIndex(p => p.id === action.id);
-    if (productIndex >= 0) {
-      draft.splice(productIndex, 1);
-    }
- });
+import  *  as CartActions from  '../../store/models/cart/actions';
+
+ handleAddProduct = product => {
+    const { dispatch } = this.props;
+
+    dispatch(CartActions.addToCart(product));
+  };
 ```
-Busco a posição do produto o produto pelo id, se tiver  removo um item do array usando slice, informando a posição e quantos items a partir da posição, no nosso caso apenas 1, o próprio produto.
 
-Pronto, agora é só testar.
+Pronto, dessa forma já podemos continuar adicionando produtos ao carrinho, mas podemos mudar um pouco mais para melhorar o código.
 
+Importaremos o bindActionCreators do Redux:
 
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-15-remover-produto](https://github.com/tgmarinho/rocketshoes/tree/aula-15-remover-produto)
+```
+import { bindActionCreators } from  'redux';
+```
 
+E assim como criamos o mapStateToProps, vamos criar o mapDispatchToProps:
+
+```
+const mapDispatchToProps = dispatch =>
+  bindActionCreators(CartActions, dispatch);
+```
+
+ele recebe o dispatch do redux, e o bindActionCreators faz a combinação de actions. Agora além de podermos ter o state nas props teremos também as actions.
+
+E passamos como segundo parâmetro da função connect a função `mapDispatchToProps`.
+
+Foi setado `null` na primeira posição pois esse componente não lida com estado.
+```
+export default connect(
+  null,
+  mapDispatchToProps
+)(Home);
+```
+
+Pronto! Agora está funcionando, e o mesmo passo a passo vou fazer no carrinho também.
+
+Legal também manter as actions com o nome da funcionalidade  + ação, então vou alterar:
+
+```
+export function addToCart(product) {
+  return {
+    type: '@cart/ADD',
+    product,
+  };
+}
+
+export function removeFromCart(id) {
+  return {
+    type: '@cart/REMOVE',
+    id,
+  };
+}
+```
+
+E alterei também no reducer para ouvir corretamente, veja detalhes no código.
+
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-16-refatorando-as-actions](https://github.com/tgmarinho/rocketshoes/tree/aula-16-refatorando-as-actions)
