@@ -29,7 +29,7 @@ export const Cart = styled(Link)`
 
     span {
       font-size: 12px;
-      color: '#999';
+      color: #999;
     }
   }
 `;
