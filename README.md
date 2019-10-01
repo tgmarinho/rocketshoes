@@ -1,124 +1,74 @@
-## Aula 13 - Listando no carrinho
+## Aula 14 - Produto duplicado
 
-Agora vamos listar os produtos do carrinho na listagem de produtos no carrinho.
-Para fazer isso vamos conectar o carrinho `cart/index.js` nosso componente Cart com o Redux, portanto, vamos importar connect e exportar o Cart com esse high order function envolvendo-o.
+Quando o usuário adicionar o mesmo produto no carrinho, vamos somar a quantidade em vez de duplicar.
 
-Única coisa nova aqui é que vamos criar uma função e passar para dentro do connect a referência dela.
-
-Quando usamos o connect do Redux,  por convenção nós criamos  uma função chamada `mapStateToProps` e passamos a referência como primeiro parâmetro da função `connect(mapStateToProps)`.
-
-`mapStateToProps`: mapear o estado do reducer para uma prop do componente.
+Vamos utilizar uma lib [immerjs](https://github.com/immerjs/immer)  para lidar com objetos e arrays que são imutáveis.
 
 ```
-...
-const  mapStateToProps  =  state  => ({
-	cart: state.cart,
-});
-
-export  default  connect(mapStateToProps)(Cart);
+yarn add immer
 ```
 
-A partir de agora continua a mesma coisa, o componente Cart terá uma prop `cart` com o estado do reducer cart que está na store do Redux.
+Com o immer nós importamos a função `produce` do `immer`, e essa função recebe o estado (state) atual e um rascunho (draftState) que podemos fazer qualquer coisa, programar sem utilizar os principios de imutabiliade, podemos fazer push no array, setar valor na mão mesmo, conforme o exemplo abaixo, ele vai pegar o rascunho e fazer as alterações do jeito certo (imutável) e disponibilizar no `nextState`.
 
-E agora podemos alimentar o componente Cart com esses valores.
+> The basic idea is that you will apply all your changes to a temporary
+> _draftState_, which is a proxy of the _currentState_. Once all your mutations are completed, Immer will produce the _nextState_ based on
+> the mutations to the draft state. This means that you can interact
+> with your data by simply modifying it while keeping all the benefits
+> of immutable data.
 
+Exemplo:
 ```
-import React from 'react';
-import { connect } from 'react-redux';
-import {
-  MdRemoveCircleOutline,
-  MdAddCircleOutline,
-  MdDelete,
-} from 'react-icons/md';
-import { Container, ProductTable, Total } from './styles';
+import produce from "immer"
 
-function Cart({ cart }) {
-  return (
-    <Container>
-      <ProductTable>
-        <thead>
-          <tr>
-            <th />
-            <th>PRODUTO</th>
-            <th>QTD</th>
-            <th>SUBTOTAL</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {cart.map(product => (
-            <tr>
-              <td>
-                <img src={product.image} alt={product.title} />
-              </td>
-              <td>
-                <strong>{product.title}</strong>
-                <span>{product.price}</span>
-              </td>
-              <td>
-                <div>
-                  <button type="button">
-                    <MdRemoveCircleOutline size={20} color="#7169c1" />
-                  </button>
-                  <input type="number" readOnly value={1} />
-                  <button type="button">
-                    <MdAddCircleOutline size={20} color="#7169c1" />
-                  </button>
-                </div>
-              </td>
-              <td>
-                <strong>R$ 258,80</strong>
-              </td>
-              <td>
-                <div>
-                  <button type="button">
-                    <MdDelete size={20} color="#7169c1" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </ProductTable>
+const baseState = [
+    {
+        todo: "Learn typescript",
+        done: true
+    },
+    {
+        todo: "Try immer",
+        done: false
+    }
+]
 
-      <footer>
-        <button type="button">Finalizar Pedido</button>
-
-        <Total>
-          <span>TOTAL</span>
-          <strong>R$ 1.920,28</strong>
-        </Total>
-      </footer>
-    </Container>
-  );
-}
-
-const mapStateToProps = state => ({
-  cart: state.cart,
-});
-
-export default connect(mapStateToProps)(Cart);
+const nextState = produce(baseState, draftState => {
+    draftState.push({todo: "Tweet about it"})
+    draftState[1].done = true
+})
 ```
 
-Falta fazer funcionar a atualização da quantidade, remover item do carrinho, e deixar o preço formatado e calcular o valor total.
+Vamos ver na prática no nosso projeto.
 
-Para isso vamos alterar o reducer do carrinho: `cart/reducer.js`.
+Precisamos agora retornar o resultado próximo estado que o produce irá retornar, ele recebeu o state atual e o draft que é uma cópia do estado, com isso fizemos um verificação no array de carrinho para verificar se o produto já estava insererido, retornando a posição dele no array.
 
-Primeiro vamos colocar uma propridade de quantidade do produto no carrinho, que é o `amount`.
+Se tem o produto, o productIndex recebe o id dele.
+
+Verifico se é maior que zero, isso é, ele se ele tiver valor maior que zero então ele achou o produto. 
+
+Portanto ele altera o valor do amount acrescetando mais um ao valor.
+
+Se não tivesse o produto, ele colocaria amount igual a 1 mesmo e das proximas vezes que adicionaesse iria só incrementando esse valor.
 
 ```
+import produce from 'immer';
+
 export default function cart(state = [], action) {
   switch (action.type) {
     case 'ADD_TO_CART':
-      return [...state, { ...action.product, amount: 1 }];
+      return produce(state, draft => {
+        const productIndex = draft.findIndex(p => p.id === action.product.id);
+        if (productIndex >= 0) {
+          draft[productIndex].amount += 1;
+        } else {
+          draft.push({ ...action.product, amount: 1 });
+        }
+      });
     default:
       return state;
   }
 }
 ```
 
-Pronto, toda vez que for incluso o produto, vai ser criado um estado com os dados do produto e o valor do amount será 1.
+Pronto, agora é só testar! O produto não duplica, mas aumenta o valor da quantidade.
 
-Na próxima aula iremos resolver o problema de produto duplicado. Pois o comportamento esperado é atualizar a quantide de produto e não duplicar o mesmo produto quando adicionamos ele mais de uma vez no carrinho.
-
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-13-listando-no-carinho](https://github.com/tgmarinho/rocketshoes/tree/aula-13-listando-no-carinho)
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-14-produto-duplicado](https://github.com/tgmarinho/rocketshoes/tree/aula-14-produto-duplicado)
