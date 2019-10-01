@@ -1,69 +1,45 @@
-## Aula 18 - Calculando totais
+## Aula 19 - Exibindo quantidade
 
-Vamos calcular o subtotal do produto que é a quantidade x preço do produto.
+Agora vamos exibir as quantidades que aparece no botão ADICIONAR AO CARRINHO na tela HOME.
 
-Não é uma boa prática fazer calculos dentro do render do React, pois a cada atualização do valor esse cálculo vai ser feito e onerar o site com vários processos que não são necessários em tela.
-
-O melhor lugar de fazer calculo dos valores é quando está mapenando o estado para as props, onde o estado já foi atualizado e ele vai retornar o estado, podemos fazer algumas modificações adicionais.
-
-Como queremos formatar o subtotal vamos utilizar a função `formatPrice` novamente:
-
-```
-import { formatPrice } from  '../../util/format';
-```
-E adicionar o calculo do subtotal para cada produto: 
-```
-const mapStateToProps = state => ({
-  cart: state.cart.map(product => ({
-    ...product,
-    subtotal: formatPrice(product.price * product.amount),
-  })),
-});
-```
-
-Para a prop cart: vamos retorna um array de produtos adionando a propriedade subtotal ao prodcut.
-
-E depois só utilizar essa propriedade:
-
-```
-<td>
-   <strong>{product.subtotal}</strong>
-</td>
-```
-
-Pronto, a cada alteração no amount vai ser feito o cálculo do subtotal de todos os valores.
-
-Vamos fazer agora o calculo do valor total do carrinho:
+Para isso vamos usar o `mapStateToProps`:
 
 ```
 const mapStateToProps = state => ({
-  cart: state.cart.map(product => ({
-    ...product,
-    subtotal: formatPrice(product.price * product.amount),
-  })),
-  total: formatPrice(
-    state.cart.reduce((total, product) => {
-      return total + product.price * product.amount;
-    }, 0)
-  ),
+  amount: state.cart.reduce((amount, product) => {
+    amount[product.id] = product.amount;
+    return amount;
+  }, {}),
 });
 ```
-Criamos uma nova prop total que recebe o valor total dos items no carrinho.
 
-Só acessar a prop total:
+Aqui estou criando um objeto, que recebe vários valores, na verdade ele é uma mapa, com chave e valor, a chave é o id do produto e o valor é a quantidade do produto.
+
+Esse reduce vai retornar um objeto com os valores: { 1 : 2 }
+
+Vai ficar algo assim: 
 ```
-function  Cart({ cart, removeFromCart, updateAmount, total }) { ... }
+{ 
+	1: 2,
+	2: 6,
+	3: 0,
+	4:15,
+	...
+}
 ```
 
-E usar no seu devido lugar:
+E assim vai, o valor da esquerda é id do produto e o valor da direita é a quantidade do produto.
+
+E depois só utilizar essa prop `amount`:
 
 ```
-<Total>
-	<span>TOTAL</span>
-	<strong>{total}</strong>
-</Total>
-
-Pronto, só testar!
-
+<div>
+   <MdAddShoppingCart size={16} color="#fff" />{' '}
+   {amount[product.id] || 0}
+</div>
 ```
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-18-calculando-totais](https://github.com/tgmarinho/rocketshoes/tree/aula-18-calculando-totais)
+Com a chave do id do produto acesso sua respectiva quantidade!
+
+Esse algoritmo ficou massa d+
+
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-19-exibindo-quantidades ](https://github.com/tgmarinho/rocketshoes/tree/aula-19-exibindo-quantidades )
