@@ -1,84 +1,155 @@
-## Aula 16 - Refatorando as actions
+## Aula 17 - Alterando quantidade
 
-Uma prática muito legal é separar as actions em um único arquivo por funcionalidade, e não deixar elas espalhadas no código como estão, e também criar uma variável onde armazenaremos o noma da action, para evitar erros de digitação e facilidar a manunteção dos nomes dessas actions.
+Vamos adicionar ou remover a quantidade de items do produto.
 
-Para fazer isso, vamos criar um arquivo `actions.js` dentro da pasta `store/models/cart`:
+Primeiro criamos uma action para atulizar a quantidade:
 
 ```
-export function addToCart(product) {
+export function updateAmount(id, amount) {
   return {
-    type: 'ADD_TO_CART',
-    product,
-  };
-}
-
-export function removeFromCart(id) {
-  return {
-    type: 'REMOVE_FROM_CART',
+    type: '@cart/UPDATE_AMOUNT',
     id,
+    amount,
   };
 }
 ```
 
-Agoramos vamos usar essas funções nos componentes das telas Home e no Cart.
+A action recebe o id do produto e a quantidade que deverá ser atualizada.
+
+Depois conectamos essa função no componete do Carrinho:
 
 ```
-import  *  as CartActions from  '../../store/models/cart/actions';
+import React from 'react';
+import { connect } from 'react-redux';
+import {
+  MdRemoveCircleOutline,
+  MdAddCircleOutline,
+  MdDelete,
+} from 'react-icons/md';
+import { bindActionCreators } from 'redux';
+import { Container, ProductTable, Total } from './styles';
+import * as CartActions from '../../store/models/cart/actions';
 
- handleAddProduct = product => {
-    const { dispatch } = this.props;
+function Cart({ cart, removeFromCart, updateAmount }) {
+  function increment(product) {
+    updateAmount(product.id, product.amount + 1);
+  }
+  function decrement(product) {
+    updateAmount(product.id, product.amount - 1);
+  }
 
-    dispatch(CartActions.addToCart(product));
-  };
-```
+  return (
+    <Container>
+      <ProductTable>
+        <thead>
+          <tr>
+            <th />
+            <th>PRODUTO</th>
+            <th>QTD</th>
+            <th>SUBTOTAL</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {cart.map(product => (
+            <tr>
+              <td>
+                <img src={product.image} alt={product.title} />
+              </td>
+              <td>
+                <strong>{product.title}</strong>
+                <span>{product.price}</span>
+              </td>
+              <td>
+                <div>
+                  <button type="button">
+                    <MdRemoveCircleOutline
+                      size={20}
+                      color="#7169c1"
+                      onClick={() => decrement(product)}
+                    />
+                  </button>
+                  <input type="number" readOnly value={product.amount} />
+                  <button type="button">
+                    <MdAddCircleOutline
+                      size={20}
+                      color="#7169c1"
+                      onClick={() => increment(product)}
+                    />
+                  </button>
+                </div>
+              </td>
+              <td>
+                <strong>R$ 258,80</strong>
+              </td>
+              <td>
+                <div>
+                  <button type="button">
+                    <MdDelete
+                      size={20}
+                      color="#7169c1"
+                      onClick={() => removeFromCart(product.id)}
+                    />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </ProductTable>
 
-Pronto, dessa forma já podemos continuar adicionando produtos ao carrinho, mas podemos mudar um pouco mais para melhorar o código.
+      <footer>
+        <button type="button">Finalizar Pedido</button>
 
-Importaremos o bindActionCreators do Redux:
+        <Total>
+          <span>TOTAL</span>
+          <strong>R$ 1.920,28</strong>
+        </Total>
+      </footer>
+    </Container>
+  );
+}
 
-```
-import { bindActionCreators } from  'redux';
-```
-
-E assim como criamos o mapStateToProps, vamos criar o mapDispatchToProps:
-
-```
 const mapDispatchToProps = dispatch =>
   bindActionCreators(CartActions, dispatch);
-```
 
-ele recebe o dispatch do redux, e o bindActionCreators faz a combinação de actions. Agora além de podermos ter o state nas props teremos também as actions.
+const mapStateToProps = state => ({
+  cart: state.cart,
+});
 
-E passamos como segundo parâmetro da função connect a função `mapDispatchToProps`.
-
-Foi setado `null` na primeira posição pois esse componente não lida com estado.
-```
 export default connect(
-  null,
+  mapStateToProps,
   mapDispatchToProps
-)(Home);
+)(Cart);
 ```
 
-Pronto! Agora está funcionando, e o mesmo passo a passo vou fazer no carrinho também.
-
-Legal também manter as actions com o nome da funcionalidade  + ação, então vou alterar:
+Foi criado duas funções que foram utilizas nos botões de incrementar e decrementar a quantidade de produto no carrinho:
 
 ```
-export function addToCart(product) {
-  return {
-    type: '@cart/ADD',
-    product,
-  };
-}
-
-export function removeFromCart(id) {
-  return {
-    type: '@cart/REMOVE',
-    id,
-  };
-}
+  function increment(product) {
+    updateAmount(product.id, product.amount + 1);
+  }
+  function decrement(product) {
+    updateAmount(product.id, product.amount - 1);
+  }
 ```
 
-E alterei também no reducer para ouvir corretamente, veja detalhes no código.
+Por fim criamos mais um case para tratar a chamada da action de atualizar quantidade:
+```
+...
+    case '@cart/UPDATE_AMOUNT': {
+      if (action.amount <= 0) {
+        return state;
+      }
+      return produce(state, draft => {
+        const productIndex = draft.findIndex(p => p.id === action.id);
+        if (productIndex >= 0) {
+          draft[productIndex].amount = Number(action.amount);
+        }
+      });
+ ...
+```
 
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-16-refatorando-as-actions](https://github.com/tgmarinho/rocketshoes/tree/aula-16-refatorando-as-actions)
+Pronto, só testar.
+
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-17-alterando-quantidade](https://github.com/tgmarinho/rocketshoes/tree/aula-17-alterando-quantidade)
