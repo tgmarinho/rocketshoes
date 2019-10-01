@@ -8,8 +8,9 @@ import {
 import { bindActionCreators } from 'redux';
 import { Container, ProductTable, Total } from './styles';
 import * as CartActions from '../../store/models/cart/actions';
+import { formatPrice } from '../../util/format';
 
-function Cart({ cart, removeFromCart, updateAmount }) {
+function Cart({ cart, removeFromCart, updateAmount, total }) {
   function increment(product) {
     updateAmount(product.id, product.amount + 1);
   }
@@ -59,7 +60,7 @@ function Cart({ cart, removeFromCart, updateAmount }) {
                 </div>
               </td>
               <td>
-                <strong>R$ 258,80</strong>
+                <strong>{product.subtotal}</strong>
               </td>
               <td>
                 <div>
@@ -82,7 +83,7 @@ function Cart({ cart, removeFromCart, updateAmount }) {
 
         <Total>
           <span>TOTAL</span>
-          <strong>R$ 1.920,28</strong>
+          <strong>{total}</strong>
         </Total>
       </footer>
     </Container>
@@ -93,7 +94,15 @@ const mapDispatchToProps = dispatch =>
   bindActionCreators(CartActions, dispatch);
 
 const mapStateToProps = state => ({
-  cart: state.cart,
+  cart: state.cart.map(product => ({
+    ...product,
+    subtotal: formatPrice(product.price * product.amount),
+  })),
+  total: formatPrice(
+    state.cart.reduce((total, product) => {
+      return total + product.price * product.amount;
+    }, 0)
+  ),
 });
 
 export default connect(

@@ -1,155 +1,69 @@
-## Aula 17 - Alterando quantidade
+## Aula 18 - Calculando totais
 
-Vamos adicionar ou remover a quantidade de items do produto.
+Vamos calcular o subtotal do produto que é a quantidade x preço do produto.
 
-Primeiro criamos uma action para atulizar a quantidade:
+Não é uma boa prática fazer calculos dentro do render do React, pois a cada atualização do valor esse cálculo vai ser feito e onerar o site com vários processos que não são necessários em tela.
 
-```
-export function updateAmount(id, amount) {
-  return {
-    type: '@cart/UPDATE_AMOUNT',
-    id,
-    amount,
-  };
-}
-```
+O melhor lugar de fazer calculo dos valores é quando está mapenando o estado para as props, onde o estado já foi atualizado e ele vai retornar o estado, podemos fazer algumas modificações adicionais.
 
-A action recebe o id do produto e a quantidade que deverá ser atualizada.
-
-Depois conectamos essa função no componete do Carrinho:
+Como queremos formatar o subtotal vamos utilizar a função `formatPrice` novamente:
 
 ```
-import React from 'react';
-import { connect } from 'react-redux';
-import {
-  MdRemoveCircleOutline,
-  MdAddCircleOutline,
-  MdDelete,
-} from 'react-icons/md';
-import { bindActionCreators } from 'redux';
-import { Container, ProductTable, Total } from './styles';
-import * as CartActions from '../../store/models/cart/actions';
-
-function Cart({ cart, removeFromCart, updateAmount }) {
-  function increment(product) {
-    updateAmount(product.id, product.amount + 1);
-  }
-  function decrement(product) {
-    updateAmount(product.id, product.amount - 1);
-  }
-
-  return (
-    <Container>
-      <ProductTable>
-        <thead>
-          <tr>
-            <th />
-            <th>PRODUTO</th>
-            <th>QTD</th>
-            <th>SUBTOTAL</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {cart.map(product => (
-            <tr>
-              <td>
-                <img src={product.image} alt={product.title} />
-              </td>
-              <td>
-                <strong>{product.title}</strong>
-                <span>{product.price}</span>
-              </td>
-              <td>
-                <div>
-                  <button type="button">
-                    <MdRemoveCircleOutline
-                      size={20}
-                      color="#7169c1"
-                      onClick={() => decrement(product)}
-                    />
-                  </button>
-                  <input type="number" readOnly value={product.amount} />
-                  <button type="button">
-                    <MdAddCircleOutline
-                      size={20}
-                      color="#7169c1"
-                      onClick={() => increment(product)}
-                    />
-                  </button>
-                </div>
-              </td>
-              <td>
-                <strong>R$ 258,80</strong>
-              </td>
-              <td>
-                <div>
-                  <button type="button">
-                    <MdDelete
-                      size={20}
-                      color="#7169c1"
-                      onClick={() => removeFromCart(product.id)}
-                    />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </ProductTable>
-
-      <footer>
-        <button type="button">Finalizar Pedido</button>
-
-        <Total>
-          <span>TOTAL</span>
-          <strong>R$ 1.920,28</strong>
-        </Total>
-      </footer>
-    </Container>
-  );
-}
-
-const mapDispatchToProps = dispatch =>
-  bindActionCreators(CartActions, dispatch);
-
+import { formatPrice } from  '../../util/format';
+```
+E adicionar o calculo do subtotal para cada produto: 
+```
 const mapStateToProps = state => ({
-  cart: state.cart,
+  cart: state.cart.map(product => ({
+    ...product,
+    subtotal: formatPrice(product.price * product.amount),
+  })),
 });
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(Cart);
 ```
 
-Foi criado duas funções que foram utilizas nos botões de incrementar e decrementar a quantidade de produto no carrinho:
+Para a prop cart: vamos retorna um array de produtos adionando a propriedade subtotal ao prodcut.
+
+E depois só utilizar essa propriedade:
 
 ```
-  function increment(product) {
-    updateAmount(product.id, product.amount + 1);
-  }
-  function decrement(product) {
-    updateAmount(product.id, product.amount - 1);
-  }
+<td>
+   <strong>{product.subtotal}</strong>
+</td>
 ```
 
-Por fim criamos mais um case para tratar a chamada da action de atualizar quantidade:
+Pronto, a cada alteração no amount vai ser feito o cálculo do subtotal de todos os valores.
+
+Vamos fazer agora o calculo do valor total do carrinho:
+
 ```
-...
-    case '@cart/UPDATE_AMOUNT': {
-      if (action.amount <= 0) {
-        return state;
-      }
-      return produce(state, draft => {
-        const productIndex = draft.findIndex(p => p.id === action.id);
-        if (productIndex >= 0) {
-          draft[productIndex].amount = Number(action.amount);
-        }
-      });
- ...
+const mapStateToProps = state => ({
+  cart: state.cart.map(product => ({
+    ...product,
+    subtotal: formatPrice(product.price * product.amount),
+  })),
+  total: formatPrice(
+    state.cart.reduce((total, product) => {
+      return total + product.price * product.amount;
+    }, 0)
+  ),
+});
+```
+Criamos uma nova prop total que recebe o valor total dos items no carrinho.
+
+Só acessar a prop total:
+```
+function  Cart({ cart, removeFromCart, updateAmount, total }) { ... }
 ```
 
-Pronto, só testar.
+E usar no seu devido lugar:
 
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-17-alterando-quantidade](https://github.com/tgmarinho/rocketshoes/tree/aula-17-alterando-quantidade)
+```
+<Total>
+	<span>TOTAL</span>
+	<strong>{total}</strong>
+</Total>
+
+Pronto, só testar!
+
+```
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-18-calculando-totais](https://github.com/tgmarinho/rocketshoes/tree/aula-18-calculando-totais)
