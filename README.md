@@ -1,74 +1,40 @@
-## Aula 14 - Produto duplicado
+## Aula 15 - Remover produto
 
-Quando o usuário adicionar o mesmo produto no carrinho, vamos somar a quantidade em vez de duplicar.
+Quando o usuário clicar no botão com ícone de lixeira para  remover produto vamos remover do array do reducer do cart.
 
-Vamos utilizar uma lib [immerjs](https://github.com/immerjs/immer)  para lidar com objetos e arrays que são imutáveis.
+O carrinho já está conectado com o Redux, então só passar a função dispatch para disparar uma action para deletar o produto do carrinho informando o id do produto.
 
 ```
-yarn add immer
+...
+function  Cart({ cart, dispatch }) { ... }
+...
 ```
 
-Com o immer nós importamos a função `produce` do `immer`, e essa função recebe o estado (state) atual e um rascunho (draftState) que podemos fazer qualquer coisa, programar sem utilizar os principios de imutabiliade, podemos fazer push no array, setar valor na mão mesmo, conforme o exemplo abaixo, ele vai pegar o rascunho e fazer as alterações do jeito certo (imutável) e disponibilizar no `nextState`.
-
-> The basic idea is that you will apply all your changes to a temporary
-> _draftState_, which is a proxy of the _currentState_. Once all your mutations are completed, Immer will produce the _nextState_ based on
-> the mutations to the draft state. This means that you can interact
-> with your data by simply modifying it while keeping all the benefits
-> of immutable data.
-
-Exemplo:
 ```
-import produce from "immer"
+<MdDelete
+   size={20}
+   color="#7169c1"
+   onClick={() => dispatch({ type: 'REMOVE_FROM_CART', id: product.id })}
+/>
+```
 
-const baseState = [
-    {
-        todo: "Learn typescript",
-        done: true
-    },
-    {
-        todo: "Try immer",
-        done: false
+Pronto, agora a action vai ser disparada pelo dipatch, agora só falta fazer o reducer tratar essa ação, pois ouvir ele já está ouvindo. Pode testar no reactotron e ver que o log já aparece.
+
+Para isso no cart/reducer.js:
+
+```
+case 'REMOVE_FROM_CART':
+  return produce(state, draft => {
+    const productIndex = draft.findIndex(p => p.id === action.id);
+    if (productIndex >= 0) {
+      draft.splice(productIndex, 1);
     }
-]
-
-const nextState = produce(baseState, draftState => {
-    draftState.push({todo: "Tweet about it"})
-    draftState[1].done = true
-})
+ });
 ```
+Busco a posição do produto o produto pelo id, se tiver  removo um item do array usando slice, informando a posição e quantos items a partir da posição, no nosso caso apenas 1, o próprio produto.
 
-Vamos ver na prática no nosso projeto.
+Pronto, agora é só testar.
 
-Precisamos agora retornar o resultado próximo estado que o produce irá retornar, ele recebeu o state atual e o draft que é uma cópia do estado, com isso fizemos um verificação no array de carrinho para verificar se o produto já estava insererido, retornando a posição dele no array.
 
-Se tem o produto, o productIndex recebe o id dele.
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-15-remover-produto](https://github.com/tgmarinho/rocketshoes/tree/aula-15-remover-produto)
 
-Verifico se é maior que zero, isso é, ele se ele tiver valor maior que zero então ele achou o produto. 
-
-Portanto ele altera o valor do amount acrescetando mais um ao valor.
-
-Se não tivesse o produto, ele colocaria amount igual a 1 mesmo e das proximas vezes que adicionaesse iria só incrementando esse valor.
-
-```
-import produce from 'immer';
-
-export default function cart(state = [], action) {
-  switch (action.type) {
-    case 'ADD_TO_CART':
-      return produce(state, draft => {
-        const productIndex = draft.findIndex(p => p.id === action.product.id);
-        if (productIndex >= 0) {
-          draft[productIndex].amount += 1;
-        } else {
-          draft.push({ ...action.product, amount: 1 });
-        }
-      });
-    default:
-      return state;
-  }
-}
-```
-
-Pronto, agora é só testar! O produto não duplica, mas aumenta o valor da quantidade.
-
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-14-produto-duplicado](https://github.com/tgmarinho/rocketshoes/tree/aula-14-produto-duplicado)
