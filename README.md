@@ -1,68 +1,124 @@
-## Aula 12 - Reactotron + Redux
+## Aula 13 - Listando no carrinho
 
-Vamos configurar o Reactotron para mostar os logs do Redux, vai ajudar bastante a debugar o Redux.
+Agora vamos listar os produtos do carrinho na listagem de produtos no carrinho.
+Para fazer isso vamos conectar o carrinho `cart/index.js` nosso componente Cart com o Redux, portanto, vamos importar connect e exportar o Cart com esse high order function envolvendo-o.
 
-Para fazer isso na web em projetos com React e Redux adicionaremos as libs:
+Única coisa nova aqui é que vamos criar uma função e passar para dentro do connect a referência dela.
 
-```
-yarn add reactotron-react-js reactotron-redux
-```
+Quando usamos o connect do Redux,  por convenção nós criamos  uma função chamada `mapStateToProps` e passamos a referência como primeiro parâmetro da função `connect(mapStateToProps)`.
 
-Depois criaremos  um arquivo `src/config/Reactotron.js` que conterá as configurações.
-
-Embora ela seja uma ferramenta de fazer debug ela tem que ser instalada com dependência do projeto mesmo, pois o código de configuração dela é executado em produção também, porém o efetivo funcionamento dela só funciona em desenvolvimento, você vai ver agora porque:
+`mapStateToProps`: mapear o estado do reducer para uma prop do componente.
 
 ```
-import Reactotron from 'reactotron-react-js';
-import { reactotronRedux } from 'reactotron-redux';
+...
+const  mapStateToProps  =  state  => ({
+	cart: state.cart,
+});
 
-if (process.env.NODE_ENV === 'development') {
-  const tron = Reactotron.configure()
-    .use(reactotronRedux())
-    .connect();
+export  default  connect(mapStateToProps)(Cart);
+```
 
-  tron.clear();
+A partir de agora continua a mesma coisa, o componente Cart terá uma prop `cart` com o estado do reducer cart que está na store do Redux.
 
-  console.tron = tron;
+E agora podemos alimentar o componente Cart com esses valores.
+
+```
+import React from 'react';
+import { connect } from 'react-redux';
+import {
+  MdRemoveCircleOutline,
+  MdAddCircleOutline,
+  MdDelete,
+} from 'react-icons/md';
+import { Container, ProductTable, Total } from './styles';
+
+function Cart({ cart }) {
+  return (
+    <Container>
+      <ProductTable>
+        <thead>
+          <tr>
+            <th />
+            <th>PRODUTO</th>
+            <th>QTD</th>
+            <th>SUBTOTAL</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {cart.map(product => (
+            <tr>
+              <td>
+                <img src={product.image} alt={product.title} />
+              </td>
+              <td>
+                <strong>{product.title}</strong>
+                <span>{product.price}</span>
+              </td>
+              <td>
+                <div>
+                  <button type="button">
+                    <MdRemoveCircleOutline size={20} color="#7169c1" />
+                  </button>
+                  <input type="number" readOnly value={1} />
+                  <button type="button">
+                    <MdAddCircleOutline size={20} color="#7169c1" />
+                  </button>
+                </div>
+              </td>
+              <td>
+                <strong>R$ 258,80</strong>
+              </td>
+              <td>
+                <div>
+                  <button type="button">
+                    <MdDelete size={20} color="#7169c1" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </ProductTable>
+
+      <footer>
+        <button type="button">Finalizar Pedido</button>
+
+        <Total>
+          <span>TOTAL</span>
+          <strong>R$ 1.920,28</strong>
+        </Total>
+      </footer>
+    </Container>
+  );
+}
+
+const mapStateToProps = state => ({
+  cart: state.cart,
+});
+
+export default connect(mapStateToProps)(Cart);
+```
+
+Falta fazer funcionar a atualização da quantidade, remover item do carrinho, e deixar o preço formatado e calcular o valor total.
+
+Para isso vamos alterar o reducer do carrinho: `cart/reducer.js`.
+
+Primeiro vamos colocar uma propridade de quantidade do produto no carrinho, que é o `amount`.
+
+```
+export default function cart(state = [], action) {
+  switch (action.type) {
+    case 'ADD_TO_CART':
+      return [...state, { ...action.product, amount: 1 }];
+    default:
+      return state;
+  }
 }
 ```
 
-Importamos as duas libs instaladas, o CRA coloca nas variáveis de ambiente, o NODE_ENV, se estiver em ambiente de desenvolvimento o valor é 'development' se não é 'production' quando o site está no ar.
-E se estiver em desenvolvimento, então a configuração é realizada.
+Pronto, toda vez que for incluso o produto, vai ser criado um estado com os dados do produto e o valor do amount será 1.
 
-Declaramos uma variável tron que recebe a configuração do reactotron o qual usa um plugin do redux para logar as actions e reducers.
+Na próxima aula iremos resolver o problema de produto duplicado. Pois o comportamento esperado é atualizar a quantide de produto e não duplicar o mesmo produto quando adicionamos ele mais de uma vez no carrinho.
 
-Eu limpo o console toda vez que a aplicação reinicia e atribui a configuração de tron para a variável global console na propridade tron também. Com isso não preciso importar o tron para usar o reactotron em todos os arquivos que quero logar, basta invocar console.tron.log('meu log').
-
-Depois só importar a configuração na raiz da aplicação, que pode ser na primeira linha do componente App.js:
-
-```
-import  './config/ReactotronConfig';
-...
-```
-
-e por fim agora podemos usar o `console.tron.log('loguei');`.
-
-Apenas com isso não é possível logar as actions e reducers, precisamos configurar no store:
-
-```
-import { createStore } from 'redux';
-import rootReducer from './models/rootReducer';
-
-const enhancer =
-  process.env.NODE_ENV === 'development' ? console.tron.createEnhancer() : null;
-
-const store = createStore(rootReducer, enhancer);
-
-export default store;
-```
-
-Criaremos um middleware no redux que intercepta as chamadas das actions pra os reducers, então com isso o reactotron irá logar todas as actions para nós.
-
-Portanto, se o enhancer estiver com valor de configuração, ele é passado para o createStore e a integração é realizada com sucesso!
-
-![](https://github.com/tgmarinho/Images/blob/master/bootcamp-rocketseat/reacto-tron-com-actions-redux.png?raw=true)
-
-Nesse caso nem precisa de colocar um console.tron.log(''), só com a integração o Reactotron vai ouvir as actions através do middleware.
-
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-12-reactotron-com-redux](https://github.com/tgmarinho/rocketshoes/tree/aula-12-reactotron-com-redux)
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-13-listando-no-carinho](https://github.com/tgmarinho/rocketshoes/tree/aula-13-listando-no-carinho)
