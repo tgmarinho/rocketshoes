@@ -1,52 +1,115 @@
-## Aula 24 - React Toastify
+## Aula 25 - Estoque na alteração
 
-Vamos utilizar a lib [React Toastify](https://github.com/fkhadra/react-toastify), ela é muito boa para dar um feedback visual para mensagens de sucesso, alerta e erro da aplicação.
+Vamos consultar o estoque quando o usuário clicar no botão de diminuir e aumentar o estoque.
 
-```
-yarn add react-toastify 
-```
-
-No arquivo `App.js` vamos importar o `ToastContainer` da `react-toastify`,  e repassar para o componente, dentro do `BrowserRouter`, e passamos um tempo de duração para ele fechar automaticamente após três segundos.
- 
-```
-import { ToastContainer } from  'react-toastify';
-
-...
- <Provider store={store}>
-  <BrowserRouter>
-     <Header />
-     <GlobalStyle />
-     <ToastContainer autoClose={3000} />
-     <Routes />
-  </BrowserRouter>
-</Provider>
-...
-```
-
-No arquivo `globals.js` importaremos os estilos do toastify:
+Vamos deixar o saga fazer a verificação, pois precisamos consultar o estoque também.
 
 ```
-...
-import  'react-toastify/dist/ReactToastify.css';
-...
+export function updateAmountRequest(id, amount) {
+  return {
+    type: '@cart/UPDATE_AMOUNT_REQUEST',
+    id,
+    amount,
+  };
+}
+
+export function updateAmountSuccess(id, amount) {
+  return {
+    type: '@cart/UPDATE_AMOUNT_SUCCESS',
+    id,
+    amount,
+  };
+}
 ```
 
-E por fim agora só utilizar, no arquivo sagas.js do carrinho, vamos adicionar:
+Criamos outro saga para poder lidar com as requisições de update na quantidade:
 
 ```
-...
- if (amount > stockAmount) {
+import { call, select, put, all, takeLatest } from 'redux-saga/effects';
+import { toast } from 'react-toastify';
+import api from '../../../services/api';
+import { addToCartSuccess, updateAmountSuccess } from './actions';
+import { formatPrice } from '../../../util/format';
+
+function* addToCart({ id }) {
+  const productExists = yield select(state =>
+    state.cart.find(p => p.id === id)
+  );
+
+  const stock = yield call(api.get, `/stock/${id}`);
+
+  const stockAmount = stock.data.amount;
+  const currentAmount = productExists ? productExists.amount : 0;
+
+  const amount = currentAmount + 1;
+
+  if (amount > stockAmount) {
     toast.error('Quantidade solicitada fora de estoque');
     return;
   }
- ...
+
+  if (productExists) {
+    yield put(updateAmountSuccess(id, amount));
+  } else {
+    const response = yield call(api.get, `/products/${id}`);
+    const data = {
+      ...response.data,
+      amount: 1,
+      priceFormatted: formatPrice(response.data.price),
+    };
+
+    yield put(addToCartSuccess(data));
+  }
+}
+
+function* updateAmount({ id, amount }) {
+  if (amount <= 0) return;
+
+  const stock = yield call(api.get, `stock/${id}`);
+
+  const stockAmount = stock.data.amount;
+
+  if (amount > stockAmount) {
+    toast.error('Quantidade solicitada fora de estoque');
+    return;
+  }
+
+  yield put(updateAmountSuccess(id, amount));
+}
+
+export default all([
+  takeLatest('@cart/ADD_REQUEST', addToCart),
+  takeLatest('@cart/UPDATE_AMOUNT_REQUEST', updateAmount),
+]);
 ```
 
-Pronto, agora vamos ter um feedback visual quando o usuário adicionar mais produtos do que tem disponível em estoque.
+Alteramos o reducer para apenas ouvir o `@cart/UPDATE_AMOUNT_SUCCESS` e atualizando o novo valor do amount do carrinho.
 
-Essa lib tem várias configurações legais para fazer, ela é muito boa para usar na web.
+```
+    case '@cart/UPDATE_AMOUNT_SUCCESS': {
+      return produce(state, draft => {
+        const productIndex = draft.findIndex(p => p.id === action.id);
+        if (productIndex >= 0) {
+          draft[productIndex].amount = Number(action.amount);
+        }
+      });
+    }
+```
 
+E no componente cart alteremos a action:
 
+```
+...
+function Cart({ cart, removeFromCart, updateAmountRequest, total }) {
+  function increment(product) {
+    updateAmountRequest(product.id, product.amount + 1);
+  }
+  function decrement(product) {
+    updateAmountRequest(product.id, product.amount - 1);
+  }
+....
+```
 
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-24-react-tostify](https://github.com/tgmarinho/rocketshoes/tree/aula-24-react-tostify)
+Pronto, agora só testar!
 
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-25-estoque-na-alteracao](https://github.com/tgmarinho/rocketshoes/tree/aula-25-estoque-na-alteracao)
