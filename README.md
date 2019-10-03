@@ -1,59 +1,52 @@
-## Aula 23 - Estoque na Adição
+## Aula 24 - React Toastify
 
-Vamos consultar o estoque antes de adicionar para ver se está disponível.
+Vamos utilizar a lib [React Toastify](https://github.com/fkhadra/react-toastify), ela é muito boa para dar um feedback visual para mensagens de sucesso, alerta e erro da aplicação.
 
 ```
-import { call, select, put, all, takeLatest } from 'redux-saga/effects';
-import api from '../../../services/api';
-import { addToCartSuccess, updateAmount } from './actions';
-import { formatPrice } from '../../../util/format';
+yarn add react-toastify 
+```
 
-function* addToCart({ id }) {
-  const productExists = yield select(state =>
-    state.cart.find(p => p.id === id)
-  );
+No arquivo `App.js` vamos importar o `ToastContainer` da `react-toastify`,  e repassar para o componente, dentro do `BrowserRouter`, e passamos um tempo de duração para ele fechar automaticamente após três segundos.
+ 
+```
+import { ToastContainer } from  'react-toastify';
 
-  const stock = yield call(api.get, `/stock/${id}`);
+...
+ <Provider store={store}>
+  <BrowserRouter>
+     <Header />
+     <GlobalStyle />
+     <ToastContainer autoClose={3000} />
+     <Routes />
+  </BrowserRouter>
+</Provider>
+...
+```
 
-  const stockAmount = stock.data.amount;
-  const currentAmount = productExists ? productExists.amount : 0;
+No arquivo `globals.js` importaremos os estilos do toastify:
 
-  const amount = currentAmount + 1;
+```
+...
+import  'react-toastify/dist/ReactToastify.css';
+...
+```
 
-  if (amount > stockAmount) {
-    console.tron.warn('ERRO!');
+E por fim agora só utilizar, no arquivo sagas.js do carrinho, vamos adicionar:
+
+```
+...
+ if (amount > stockAmount) {
+    toast.error('Quantidade solicitada fora de estoque');
     return;
   }
-
-  if (productExists) {
-    yield put(updateAmount(id, amount));
-  } else {
-    const response = yield call(api.get, `/products/${id}`);
-    const data = {
-      ...response.data,
-      amount: 1,
-      priceFormatted: formatPrice(response.data.price),
-    };
-
-    yield put(addToCartSuccess(data));
-  }
-}
-
-export default all([takeLatest('@cart/ADD_REQUEST', addToCart)]);
+ ...
 ```
 
-Depois de verificar se o produto já existe no estado, 
+Pronto, agora vamos ter um feedback visual quando o usuário adicionar mais produtos do que tem disponível em estoque.
 
-Eu chamo a rota stock passando o id do produto, e armazeno na variável stocl.
+Essa lib tem várias configurações legais para fazer, ela é muito boa para usar na web.
 
-Criei a variável stockAmout para guardar a quantidade do estoque.
 
-Criei a variável currentAmount para pegar o valor da quantidade de produto atual que já está no carrinho.
 
-Criei a variável amount para receber o valor atual com mais um.
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-24-react-tostify](https://github.com/tgmarinho/rocketshoes/tree/aula-24-react-tostify)
 
-Verifico se a nova quantidade de produtos é maior que o valor em estoque se for, envio uma mensagem de erro e paro a requisição com o `return`.
-
-Agora só testar.
-
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-23-estoque-na-adicao](https://github.com/tgmarinho/rocketshoes/tree/aula-23-estoque-na-adicao)
