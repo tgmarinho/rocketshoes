@@ -1,35 +1,63 @@
-## Aula 25 - Estoque na alteração
+## Aula 26  - Navegação no Saga
 
-Vamos consultar o estoque quando o usuário clicar no botão de diminuir e aumentar o estoque.
+Agora quando adicionarmos um novo produto ao carrinho, vamos redirecionar para o carrinho, essa é apenas uma funcionalidade extra para entender a navegação de rotas usando o saga, do jeito que está a aplicação até agora é melhor.
 
-Vamos deixar o saga fazer a verificação, pois precisamos consultar o estoque também.
+Vamos utilizar a lib [history](https://github.com/ReactTraining/history) para para controlar a History API do navegador, as rotas que o react-router-dom utiliza.
 
 ```
-export function updateAmountRequest(id, amount) {
-  return {
-    type: '@cart/UPDATE_AMOUNT_REQUEST',
-    id,
-    amount,
-  };
+yarn add history
+```
+
+Depois eu crio um arquivo `history.js` dentro da pasta services, com a seguinte configuração:
+
+```
+import { createBrowserHistory } from 'history';
+
+const history = createBrowserHistory();
+
+export default history;
+```
+
+E no App.js vamos utilizar essa lib:
+
+
+```
+import './config/ReactotronConfig';
+import React from 'react';
+import { Router } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { ToastContainer } from 'react-toastify';
+import Routes from './routes';
+import GlobalStyle from './styles/globals';
+import Header from './components/Header';
+import store from './store';
+
+import history from './services/history';
+
+function App() {
+  return (
+    <Provider store={store}>
+      <Router history={history}>
+        <Header />
+        <GlobalStyle />
+        <ToastContainer autoClose={3000} />
+        <Routes />
+      </Router>
+    </Provider>
+  );
 }
 
-export function updateAmountSuccess(id, amount) {
-  return {
-    type: '@cart/UPDATE_AMOUNT_SUCCESS',
-    id,
-    amount,
-  };
-}
+export default App;
 ```
 
-Criamos outro saga para poder lidar com as requisições de update na quantidade:
+Alteramos o BrowserRouter por Router e passamos o history como props. O react-router-dom está ouvindo tudo o que acontecer no history.
+
+E por fim, no saga quando encerrar a requisição o usuário vai ser redirecinado:
 
 ```
-import { call, select, put, all, takeLatest } from 'redux-saga/effects';
-import { toast } from 'react-toastify';
-import api from '../../../services/api';
-import { addToCartSuccess, updateAmountSuccess } from './actions';
-import { formatPrice } from '../../../util/format';
+...
+import history from  '../../../services/history';
+...
 
 function* addToCart({ id }) {
   const productExists = yield select(state =>
@@ -59,57 +87,28 @@ function* addToCart({ id }) {
     };
 
     yield put(addToCartSuccess(data));
+
+    history.push('/cart');
   }
 }
-
-function* updateAmount({ id, amount }) {
-  if (amount <= 0) return;
-
-  const stock = yield call(api.get, `stock/${id}`);
-
-  const stockAmount = stock.data.amount;
-
-  if (amount > stockAmount) {
-    toast.error('Quantidade solicitada fora de estoque');
-    return;
-  }
-
-  yield put(updateAmountSuccess(id, amount));
-}
-
-export default all([
-  takeLatest('@cart/ADD_REQUEST', addToCart),
-  takeLatest('@cart/UPDATE_AMOUNT_REQUEST', updateAmount),
-]);
-```
-
-Alteramos o reducer para apenas ouvir o `@cart/UPDATE_AMOUNT_SUCCESS` e atualizando o novo valor do amount do carrinho.
-
-```
-    case '@cart/UPDATE_AMOUNT_SUCCESS': {
-      return produce(state, draft => {
-        const productIndex = draft.findIndex(p => p.id === action.id);
-        if (productIndex >= 0) {
-          draft[productIndex].amount = Number(action.amount);
-        }
-      });
-    }
-```
-
-E no componente cart alteremos a action:
-
-```
 ...
-function Cart({ cart, removeFromCart, updateAmountRequest, total }) {
-  function increment(product) {
-    updateAmountRequest(product.id, product.amount + 1);
-  }
-  function decrement(product) {
-    updateAmountRequest(product.id, product.amount - 1);
-  }
-....
 ```
 
-Pronto, agora só testar!
+Como estamos forçando o navagador ir para tela `/cart/` o react-router-dom vai ouvir e atender a solicitação:
 
-Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-25-estoque-na-alteracao](https://github.com/tgmarinho/rocketshoes/tree/aula-25-estoque-na-alteracao)
+```
+history.push('/cart');
+```
+
+E para testar podemos rodar o json-server com um delay de dois segundos a cada requisição:
+
+```
+json-server server.json -p 3000 -w -d 2000
+```
+
+Perceba que agora vai demorar um pouco mais a cada requisição a API e a página seria redirecionada para o carrinho, assim que adionar o produto.
+
+Pronto, aplicação concluída, estamos manjando de React, Redux, Saga, React-router-dom, JsonServer, Reactotron, etc.
+
+
+Código: [https://github.com/tgmarinho/rocketshoes/tree/aula-26-navegacao-no-sagas](https://github.com/tgmarinho/rocketshoes/tree/aula-26-navegacao-no-sagas)
