@@ -1,179 +1,80 @@
-## Aula 06 - Convertendo classe pra hooks
+## Aula 07 - Hooks com Redux
 
-Vou converter o projeto rocketshoes do frontend com React para usar Hooks. Vou utilizar a última branch mais atual com classes.
+Com a vinda do Hooks ficou muito mais simples usar Redux.
 
-Baixar o projeto: [https://github.com/tgmarinho/rocketshoes/tree/aula-26-navegacao-no-sagas](https://github.com/tgmarinho/rocketshoes/tree/aula-26-navegacao-no-sagas)
+Vamos converter o Header do ecommerce para usar os Hooks com Redux.
 
-Primeiro eu baixo o plugin do eslint para lidar com hooks:
-
+Vou usar a função useSelector em vez de connect do react-redux:
+sai fora:
 ```
-yarn add eslint-plugin-react-hooks -D
+import { connect } from  'react-redux';
 ```
-
-No arquivo `.eslintrc` adiciono o plugin `react-hoooks`:
-
+entra:
 ```
-plugins: ['react', 'prettier', 'react-hooks'],
+import { useSelector } from  'react-redux';
 ```
 
-E nas `rules`: adiciono:
-
+removo as props da função Header:
+sai fora:
 ```
-...
-'react-hooks/rules-of-hooks':  'error',
-'react-hooks/exhaustive-deps':  'warn',
-...
+function  Header({ cartSize }) { ... }
 ```
 
-Pronto, agora vamos começar a refatorar o componente statefull Home:
-
-Os imports vão ficar assim:
-de:
+entra uma nova constante `cartSize`:
 ```
-import React, { Component } from  'react';
-```
-para:
-```
-import React, { useState, useEffect } from  'react';
+const cartSize =  useSelector(state => state.cart.length);
 ```
 
-Primeiro vamos alterar as declarações de estados.
+E agora ao invés de usar o connect com a função lá em baixo, com o export default, tudo fica ali dentro do  `useSelector`.
 
-de:
+Removo:
 ```
-state = {
- products: []
+export default connect(state => ({
+  cartSize: state.cart.length,
+}))(Header);
+```
+
+E o export fica assim:
+```
+export default function Header() { ... }
+```
+
+Muito mais simples, diminui umas cinco linhas de código e ficou menos verboso!
+
+Olha como fica o componente:
+
+```
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { MdShoppingBasket } from 'react-icons/md';
+import { useSelector } from 'react-redux';
+import { Container, Cart } from './styles';
+import logo from '../../assets/images/logo.svg';
+
+export default function Header() {
+  const cartSize = useSelector(state => state.cart.length);
+
+  return (
+    <Container>
+      <Link to="/">
+        <img src={logo} alt="Rocketshoes" />
+      </Link>
+
+      <Cart to="/cart">
+        <div>
+          <strong>Meu carrinho</strong>
+          <span>{cartSize} items</span>
+        </div>
+        <MdShoppingBasket size={36} color="#FFF" />
+      </Cart>
+    </Container>
+  );
 }
 ```
 
-para: 
-```
-const [products, setProducts] =  useState([])
-```
+Agora vamos refatorar o componente `Home`:
 
-
-Depois alteramos a class para function:
-de: 
-```
-class  Home  extends  Component { ... }
-```
-para:
-```
-function  Home() { ... }
-```
-
-E agora vamos refatorar o `componentDidMount` e usar `useEffect`:
-
-de:
-```
-async componentDidMount() {
-    const response = await api.get('products');
-    const data = response.data.map(product => ({
-      ...product,
-      priceFormatted: formatPrice(product.price),
-    }));
-    this.setState({ products: data });
-  }
-```
-
-para:
-```
- useEffect(() => {
-   async function loadProducts() {
-    const response = await api.get('products');
-    const data = response.data.map(product => ({
-      ...product,
-      priceFormatted: formatPrice(product.price),
-    }));
-
-    setProducts(data)
-   }
-
-   loadProducts()
- }, [])
-```
-
-Confesso que fica mais complexo na primeira impressão, pois como estamos lidando com uma chamada assincrona, não podemos fazer como no código abaixo, e o que seria o mais óbivio no primeiro contato:
-
-```
- useEffect( async () => {
-    const response = await api.get('products');
-    const data = response.data.map(product => ({
-      ...product,
-      priceFormatted: formatPrice(product.price),
-    }));
-    setProducts(data)
-   }
-
- }, [])
-```
-
-Acho que todos fariam assim na primeira vez, eu mesmo já fiz isso antes! lol
-
-O jeito certo está lá em cima, então precisamos declarar uma função assíncrona, que executa toda a lógica anterior do mesmo jeito e inclui o dada no setProducts para alterar o estado, do jeito React Hook de se fazer. E no final invocamos a função.
-
-Observe também que não passei nenhum estado no array de dependência `[]`, com isso esse useEffect vai ser executado apenas quando o componente estiver montando em tela, e só essa vez, então nesse caso só precisamos que carregue o produto na tela apenas uma única vez, igual fizemos com a classe usando o `componentDidMount`.
-
-Agora vamos refatorar o método `render() { ... } `
-
-de:
-```
-render() {
-    const { products } = this.state;
-    const { amount } = this.props;
-    return (
-      <ProductList>
-        {products.map(product => (
-          <li key={product.id}>
-            <img src={product.image} alt={product.title} />
-            <strong>{product.title}</strong>
-            <span>{product.priceFormatted}</span>
-            <button
-              type="button"
-              onClick={() => this.handleAddProduct(product.id)}
-            >
-              <div>
-                <MdAddShoppingCart size={16} color="#fff" />{' '}
-                {amount[product.id] || 0}
-              </div>
-
-              <span>ADICIONAR AO CARRINHO</span>
-            </button>
-          </li>
-        ))}
-      </ProductList>
-    );
-  }
-```
-
-para:
-```
-return (
-    <ProductList>
-      {products.map(product => (
-        <li key={product.id}>
-          <img src={product.image} alt={product.title} />
-          <strong>{product.title}</strong>
-          <span>{product.priceFormatted}</span>
-          <button type="button" onClick={() => handleAddProduct(product.id)}>
-            <div>
-              <MdAddShoppingCart size={16} color="#fff" />{' '}
-              {amount[product.id] || 0}
-            </div>
-
-            <span>ADICIONAR AO CARRINHO</span>
-          </button>
-        </li>
-      ))}
-    </ProductList>
-  );
-```
-
-A função `handleAddProduct` pode ser removida, e a `addToCartRequest` pode ser passada na props do componente Home.
- 
-Podemos passar a prop dentro da `function Home({ amount, addToCartRequest }) {...}`
-
-Tudo fica assim:
+DE:
 ```
 import React, { useState, useEffect } from 'react';
 import { MdAddShoppingCart } from 'react-icons/md';
@@ -213,7 +114,6 @@ function Home({ amount, addToCartRequest }) {
               <MdAddShoppingCart size={16} color="#fff" />{' '}
               {amount[product.id] || 0}
             </div>
-
             <span>ADICIONAR AO CARRINHO</span>
           </button>
         </li>
@@ -238,8 +138,302 @@ export default connect(
 )(Home);
 ```
 
-Pronto!
+PARA: 
+```
+import React, { useState, useEffect } from 'react';
+import { MdAddShoppingCart } from 'react-icons/md';
+import { useSelector, useDispatch } from 'react-redux';
+import { ProductList } from './styles';
+import api from '../../services/api';
+import { formatPrice } from '../../util/format';
+import * as CartActions from '../../store/models/cart/actions';
 
-Agora está tudo usando funções e o único componente que gerencia estado está usando função com Hooks.
+export default function Home() {
+  const [products, setProducts] = useState([]);
+  const amount = useSelector(state =>
+    state.cart.reduce((sumAmount, product) => {
+      sumAmount[product.id] = product.amount;
+      return sumAmount;
+    }, {})
+  );
 
-Código [https://github.com/tgmarinho/rocketshoes/tree/aula-27-convertendo-classes-para-hooks](https://github.com/tgmarinho/react-hooks/tree/aula-27-convertendo-classes-para-hooks)
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    async function loadProducts() {
+      const response = await api.get('products');
+      const data = response.data.map(product => ({
+        ...product,
+        priceFormatted: formatPrice(product.price),
+      }));
+
+      setProducts(data);
+    }
+
+    loadProducts();
+  }, []);
+
+  return (
+    <ProductList>
+      {products.map(product => (
+        <li key={product.id}>
+          <img src={product.image} alt={product.title} />
+          <strong>{product.title}</strong>
+          <span>{product.priceFormatted}</span>
+          <button
+            type="button"
+            onClick={() => dispatch(CartActions.addToCartRequest(product.id))}
+          >
+            <div>
+              <MdAddShoppingCart size={16} color="#fff" />{' '}
+              {amount[product.id] || 0}
+            </div>
+            <span>ADICIONAR AO CARRINHO</span>
+          </button>
+        </li>
+      ))}
+    </ProductList>
+  );
+}
+```
+
+Usamos o `useSelector` e `useDispatch` para simplificar o uso do Redux, veja que não usaremos mais o `connect` e nem o `bindActionCreators`, inclusive a complexidade diminui devido a diminuição da verbosidade.
+
+E tudo volta a funcionar! 
+
+Vamos refatorar agora o componente `Cart` para usar o `useSelector` e `useDispatch`:
+
+DE:
+```
+import React from 'react';
+import { connect } from 'react-redux';
+import {
+  MdRemoveCircleOutline,
+  MdAddCircleOutline,
+  MdDelete,
+} from 'react-icons/md';
+import { bindActionCreators } from 'redux';
+import { Container, ProductTable, Total } from './styles';
+import * as CartActions from '../../store/models/cart/actions';
+import { formatPrice } from '../../util/format';
+
+function Cart({ cart, removeFromCart, updateAmountRequest, total }) {
+  function increment(product) {
+    updateAmountRequest(product.id, product.amount + 1);
+  }
+  function decrement(product) {
+    updateAmountRequest(product.id, product.amount - 1);
+  }
+
+  return (
+    <Container>
+      <ProductTable>
+        <thead>
+          <tr>
+            <th />
+            <th>PRODUTO</th>
+            <th>QTD</th>
+            <th>SUBTOTAL</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {cart.map(product => (
+            <tr>
+              <td>
+                <img src={product.image} alt={product.title} />
+              </td>
+              <td>
+                <strong>{product.title}</strong>
+                <span>{product.price}</span>
+              </td>
+              <td>
+                <div>
+                  <button type="button">
+                    <MdRemoveCircleOutline
+                      size={20}
+                      color="#7169c1"
+                      onClick={() => decrement(product)}
+                    />
+                  </button>
+                  <input type="number" readOnly value={product.amount} />
+                  <button type="button">
+                    <MdAddCircleOutline
+                      size={20}
+                      color="#7169c1"
+                      onClick={() => increment(product)}
+                    />
+                  </button>
+                </div>
+              </td>
+              <td>
+                <strong>{product.subtotal}</strong>
+              </td>
+              <td>
+                <div>
+                  <button type="button">
+                    <MdDelete
+                      size={20}
+                      color="#7169c1"
+                      onClick={() => removeFromCart(product.id)}
+                    />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </ProductTable>
+
+      <footer>
+        <button type="button">Finalizar Pedido</button>
+
+        <Total>
+          <span>TOTAL</span>
+          <strong>{total}</strong>
+        </Total>
+      </footer>
+    </Container>
+  );
+}
+
+const mapDispatchToProps = dispatch =>
+  bindActionCreators(CartActions, dispatch);
+
+const mapStateToProps = state => ({
+  cart: state.cart.map(product => ({
+    ...product,
+    subtotal: formatPrice(product.price * product.amount),
+  })),
+  total: formatPrice(
+    state.cart.reduce((total, product) => {
+      return total + product.price * product.amount;
+    }, 0)
+  ),
+});
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(Cart);
+```
+
+PARA:
+```
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  MdRemoveCircleOutline,
+  MdAddCircleOutline,
+  MdDelete,
+} from 'react-icons/md';
+import { Container, ProductTable, Total } from './styles';
+import * as CartActions from '../../store/models/cart/actions';
+import { formatPrice } from '../../util/format';
+
+export default function Cart() {
+  const cart = useSelector(state =>
+    state.cart.map(product => ({
+      ...product,
+      subtotal: formatPrice(product.price * product.amount),
+    }))
+  );
+
+  const total = useSelector(state =>
+    formatPrice(
+      state.cart.reduce((sumTotal, product) => {
+        return sumTotal + product.price * product.amount;
+      }, 0)
+    )
+  );
+
+  const dispatch = useDispatch();
+
+  function increment(product) {
+    dispatch(CartActions.updateAmountRequest(product.id, product.amount + 1));
+  }
+  function decrement(product) {
+    dispatch(CartActions.updateAmountRequest(product.id, product.amount - 1));
+  }
+
+  return (
+    <Container>
+      <ProductTable>
+        <thead>
+          <tr>
+            <th />
+            <th>PRODUTO</th>
+            <th>QTD</th>
+            <th>SUBTOTAL</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {cart.map(product => (
+            <tr>
+              <td>
+                <img src={product.image} alt={product.title} />
+              </td>
+              <td>
+                <strong>{product.title}</strong>
+                <span>{product.price}</span>
+              </td>
+              <td>
+                <div>
+                  <button type="button">
+                    <MdRemoveCircleOutline
+                      size={20}
+                      color="#7169c1"
+                      onClick={() => decrement(product)}
+                    />
+                  </button>
+                  <input type="number" readOnly value={product.amount} />
+                  <button type="button">
+                    <MdAddCircleOutline
+                      size={20}
+                      color="#7169c1"
+                      onClick={() => increment(product)}
+                    />
+                  </button>
+                </div>
+              </td>
+              <td>
+                <strong>{product.subtotal}</strong>
+              </td>
+              <td>
+                <div>
+                  <button type="button">
+                    <MdDelete
+                      size={20}
+                      color="#7169c1"
+                      onClick={() =>
+                        dispatch(CartActions.removeFromCart(product.id))
+                      }
+                    />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </ProductTable>
+
+      <footer>
+        <button type="button">Finalizar Pedido</button>
+
+        <Total>
+          <span>TOTAL</span>
+          <strong>{total}</strong>
+        </Total>
+      </footer>
+    </Container>
+  );
+}
+```
+
+Pronto, agora com os hooks sempre que precisarmos de um estado do Redux podemos usar o `useSelector` e quando precisar de uma action só usar o `useDispatch`, ambos do `react-redux` para fazer essa integração com Redux.  
+
+Pronto, tudo está funcionando e com um código bem legal usando React Hooks, todos os códigos daqui para frente podem usar a API de Hooks.
+
+Código [https://github.com/tgmarinho/rocketshoes/tree/aula-28-hooks-com-redux](https://github.com/tgmarinho/react-hooks/tree/aula-28-hooks-com-redux)
+
